@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practice Hub - CurriForge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <button class="mobile-menu-btn" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+    <div class="page-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon">🎓</div>
+                <h2>CurriForge</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item" data-page="dashboard">
+                    <span class="nav-icon">📊</span> Dashboard
+                </a>
+                <a href="/enroll" class="nav-item" data-page="enroll">
+                    <span class="nav-icon">➕</span> Enroll Course
+                </a>
+                <a href="/courses" class="nav-item" data-page="courses">
+                    <span class="nav-icon">📚</span> My Courses
+                </a>
+                <a href="/practice" class="nav-item" data-page="practice">
+                    <span class="nav-icon">🧠</span> Practice Hub
+                </a>
+                <a href="/profile" class="nav-item" data-page="profile">
+                    <span class="nav-icon">👤</span> Profile
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info" onclick="window.location.href='/profile'">
+                    <div class="user-avatar">U</div>
+                    <div class="user-details">
+                        <div class="name">User</div>
+                        <div class="email">user@email.com</div>
+                    </div>
+                </div>
+                <a href="#" class="nav-item" onclick="logout()" style="margin-top:8px;color:var(--danger);">
+                    <span class="nav-icon">🚪</span> Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Practice Hub 🧠</h1>
+                <p>Test your knowledge and enhance your learning</p>
+            </div>
+
+            <!-- Step 1: Select Course & Topic -->
+            <div id="practiceSetup">
+                <div class="card mb-24">
+                    <h3 class="card-title mb-16">Select Course & Topic</h3>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Course *</label>
+                            <select class="form-select" id="practiceCoursSelect" onchange="loadTopics()">
+                                <option value="">Select a course</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Topic *</label>
+                            <select class="form-select" id="practiceTopicSelect">
+                                <option value="">Select a topic</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary btn-lg" onclick="generateQuestions()" id="generateBtn">
+                        🤖 Generate 10 Practice Questions
+                    </button>
+                </div>
+
+                <!-- Practice History -->
+                <div class="card">
+                    <h3 class="card-title mb-16">📊 Practice History</h3>
+                    <div id="practiceHistory">
+                        <p class="text-muted">Select a course to view practice history</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Quiz Workspace -->
+            <div id="quizWorkspace" class="hidden">
+                <div class="card mb-24">
+                    <div class="flex justify-between items-center mb-24">
+                        <div>
+                            <h2 id="quizTitle">Practice Quiz</h2>
+                            <p class="text-muted" id="quizSubtitle"></p>
+                        </div>
+                        <button class="btn btn-secondary" onclick="backToSetup()">← Back</button>
+                    </div>
+
+                    <div id="questionsContainer"></div>
+
+                    <div class="mt-24">
+                        <button class="btn btn-primary btn-lg btn-full" onclick="submitAnswers()" id="submitBtn">
+                            📝 Submit Answers
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Results -->
+            <div id="quizResults" class="hidden">
+                <div class="card mb-24 fade-in">
+                    <div class="text-center mb-24">
+                        <h2>Quiz Results 🎯</h2>
+                        <div class="score-circle mt-24" id="scoreCircle">
+                            <span id="scoreText">0%</span>
+                        </div>
+                        <p class="mt-16 text-muted" id="scoreSubtext"></p>
+                    </div>
+
+                    <div id="resultsDetail"></div>
+
+                    <div class="card mt-24" style="background:var(--bg-input)">
+                        <h4 class="mb-8">📝 Overall Feedback</h4>
+                        <p id="overallFeedback" class="text-muted"></p>
+                    </div>
+
+                    <div class="flex gap-16 mt-24 justify-between">
+                        <button class="btn btn-secondary" onclick="backToSetup()">← Practice Another Topic</button>
+                        <button class="btn btn-primary" onclick="retryQuiz()">🔄 Retry Same Topic</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script>
+        if (!requireAuth()) throw new Error('Not authenticated');
+        setupSidebar('practice');
+
+        let currentQuestions = [];
+        let currentSessionId = null;
+        let selectedAnswers = {};
+        let currentCourseId = null;
+        let currentTopicId = null;
+        let currentTopicTitle = null;
+        let coursesData = [];
+
+        // Check URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const preselectedCourse = urlParams.get('course');
+        const preselectedTopic = urlParams.get('topic');
+        const preselectedTitle = urlParams.get('title');
+
+        async function loadCourses() {
+            try {
+                const courses = await apiFetch('/courses/');
+                coursesData = courses || [];
+                const select = document.getElementById('practiceCoursSelect');
+
+                coursesData.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = `${c.title} (${c.level})`;
+                    select.appendChild(opt);
+                });
+
+                // Pre-select if from URL
+                if (preselectedCourse) {
+                    select.value = preselectedCourse;
+                    await loadTopics();
+
+                    if (preselectedTopic) {
+                        document.getElementById('practiceTopicSelect').value = preselectedTopic;
+                    }
+                }
+            } catch (err) {
+                showToast('Failed to load courses', 'error');
+            }
+        }
+
+        async function loadTopics() {
+            const courseId = document.getElementById('practiceCoursSelect').value;
+            const topicSelect = document.getElementById('practiceTopicSelect');
+            topicSelect.innerHTML = '<option value="">Select a topic</option>';
+
+            if (!courseId) return;
+
+            currentCourseId = parseInt(courseId);
+
+            try {
+                const course = await apiFetch(`/courses/${courseId}`);
+                if (course && course.topics) {
+                    course.topics.forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = t.id;
+                        opt.textContent = `${t.is_completed ? '✅' : '⬜'} ${t.title}`;
+                        opt.dataset.title = t.title;
+                        topicSelect.appendChild(opt);
+                    });
+                }
+
+                // Load practice history
+                loadHistory(courseId);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function loadHistory(courseId) {
+            try {
+                const history = await apiFetch(`/practice/history/${courseId}`);
+                const container = document.getElementById('practiceHistory');
+
+                if (!history || history.length === 0) {
+                    container.innerHTML = '<p class="text-muted">No practice sessions yet for this course</p>';
+                    return;
+                }
+
+                container.innerHTML = history.map(h => `
+                    <div class="flex items-center justify-between" style="padding:12px;background:var(--bg-input);border-radius:8px;margin-bottom:8px">
+                        <div>
+                            <strong>${escapeHtml(h.topic_title || 'Quiz')}</strong>
+                            <div class="text-muted" style="font-size:0.8rem">${formatDate(h.created_at)}</div>
+                        </div>
+                        <div class="flex items-center gap-16">
+                            <span>${h.correct_answers}/${h.total_questions} correct</span>
+                            <span class="badge ${h.score >= 70 ? 'badge-success' : h.score >= 40 ? 'badge-warning' : 'badge-primary'}">
+                                ${Math.round(h.score || 0)}%
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function generateQuestions() {
+            const courseId = document.getElementById('practiceCoursSelect').value;
+            const topicSelect = document.getElementById('practiceTopicSelect');
+            const topicId = topicSelect.value;
+            const topicTitle = topicId ?
+                topicSelect.options[topicSelect.selectedIndex].dataset.title :
+                (preselectedTitle || '');
+
+            if (!courseId) {
+                showToast('Please select a course', 'error');
+                return;
+            }
+
+            if (!topicId && !topicTitle) {
+                showToast('Please select a topic', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = true;
+            btn.textContent = '🤖 Generating questions...';
+            showLoading('🤖 AI is creating practice questions...');
+
+            try {
+                const data = await apiFetch('/practice/generate', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        course_id: parseInt(courseId),
+                        topic_id: topicId ? parseInt(topicId) : null,
+                        topic_title: topicTitle || null,
+                    }),
+                });
+
+                hideLoading();
+
+                if (data) {
+                    currentQuestions = data.questions || [];
+                    currentSessionId = data.session_id;
+                    currentTopicTitle = data.topic_title;
+                    selectedAnswers = {};
+
+                    // Show quiz
+                    document.getElementById('practiceSetup').classList.add('hidden');
+                    document.getElementById('quizWorkspace').classList.remove('hidden');
+                    document.getElementById('quizTitle').textContent = `Practice: ${data.topic_title}`;
+                    document.getElementById('quizSubtitle').textContent = `${currentQuestions.length} questions`;
+
+                    renderQuestions();
+                }
+            } catch (err) {
+                hideLoading();
+                showToast(err.message || 'Failed to generate questions', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🤖 Generate 10 Practice Questions';
+            }
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = currentQuestions.map((q, idx) => {
+                if (q.type === 'short_answer') {
+                    return `
+                        <div class="question-card" id="q-${idx}">
+                            <div class="question-number">Question ${idx + 1} of ${currentQuestions.length} — Short Answer</div>
+                            <div class="question-text">${escapeHtml(q.question)}</div>
+                            <input type="text" class="form-input" placeholder="Type your answer..."
+                                   onchange="selectedAnswers[${idx}] = this.value"
+                                   oninput="selectedAnswers[${idx}] = this.value">
+                        </div>
+                    `;
+                }
+
+                const options = q.options || [];
+                return `
+                    <div class="question-card" id="q-${idx}">
+                        <div class="question-number">Question ${idx + 1} of ${currentQuestions.length} — MCQ</div>
+                        <div class="question-text">${escapeHtml(q.question)}</div>
+                        <div class="options-list">
+                            ${options.map((opt, optIdx) => `
+                                <div class="option-item" onclick="selectOption(${idx}, ${optIdx}, this)" id="opt-${idx}-${optIdx}">
+                                    <div class="option-radio"></div>
+                                    <span>${escapeHtml(opt)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectOption(questionIdx, optionIdx, element) {
+            // Deselect others in same question
+            const card = document.getElementById(`q-${questionIdx}`);
+            card.querySelectorAll('.option-item').forEach(item => item.classList.remove('selected'));
+
+            // Select this one
+            element.classList.add('selected');
+            selectedAnswers[questionIdx] = currentQuestions[questionIdx].options[optionIdx];
+        }
+
+        async function submitAnswers() {
+            // Validate all answered
+            const unanswered = currentQuestions.filter((_, i) => !selectedAnswers[i] && selectedAnswers[i] !== '');
+            if (unanswered.length > 0 && Object.keys(selectedAnswers).length < currentQuestions.length) {
+                const proceed = confirm(`You have ${currentQuestions.length - Object.keys(selectedAnswers).length} unanswered questions. Submit anyway?`);
+                if (!proceed) return;
+            }
+
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.textContent = '📝 Evaluating...';
+            showLoading('🤖 AI is evaluating your answers...');
+
+            const answers = currentQuestions.map((_, i) => selectedAnswers[i] || '');
+
+            try {
+                const data = await apiFetch('/practice/submit', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        session_id: currentSessionId,
+                        answers: answers,
+                    }),
+                });
+
+                hideLoading();
+
+                if (data) {
+                    showResults(data);
+                }
+            } catch (err) {
+                hideLoading();
+                showToast(err.message || 'Failed to submit answers', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '📝 Submit Answers';
+            }
+        }
+
+        function showResults(data) {
+            document.getElementById('quizWorkspace').classList.add('hidden');
+            document.getElementById('quizResults').classList.remove('hidden');
+
+            const score = Math.round(data.score || 0);
+            const scoreEl = document.getElementById('scoreCircle');
+            scoreEl.className = `score-circle ${score >= 70 ? 'high' : score >= 40 ? 'medium' : 'low'}`;
+            document.getElementById('scoreText').textContent = `${score}%`;
+            document.getElementById('scoreSubtext').textContent =
+                `${data.correct_answers}/${data.total_questions} correct answers`;
+
+            document.getElementById('overallFeedback').textContent = data.overall_feedback || '';
+
+            // Detailed results
+            const results = data.results || [];
+            document.getElementById('resultsDetail').innerHTML = results.map((r, i) => {
+                const q = currentQuestions[i];
+                return `
+                    <div class="question-card" style="border-left:3px solid ${r.is_correct ? 'var(--success)' : 'var(--danger)'}">
+                        <div class="flex justify-between items-center mb-8">
+                            <div class="question-number">Question ${i + 1}</div>
+                            <span class="badge ${r.is_correct ? 'badge-success' : 'badge-primary'}">${r.is_correct ? '✅ Correct' : '❌ Incorrect'}</span>
+                        </div>
+                        <div class="question-text">${escapeHtml(q?.question || '')}</div>
+                        <p style="font-size:0.9rem;margin-top:8px">
+                            <strong>Your answer:</strong> ${escapeHtml(selectedAnswers[i] || 'Not answered')}
+                        </p>
+                        ${!r.is_correct && q?.correct_answer ? `
+                            <p style="font-size:0.9rem;color:var(--success);margin-top:4px">
+                                <strong>Correct answer:</strong> ${escapeHtml(q.correct_answer)}
+                            </p>
+                        ` : ''}
+                        <p style="font-size:0.85rem;color:var(--text-secondary);margin-top:8px">${escapeHtml(r.feedback || '')}</p>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function backToSetup() {
+            document.getElementById('practiceSetup').classList.remove('hidden');
+            document.getElementById('quizWorkspace').classList.add('hidden');
+            document.getElementById('quizResults').classList.add('hidden');
+            currentQuestions = [];
+            selectedAnswers = {};
+            currentSessionId = null;
+
+            // Refresh history
+            if (currentCourseId) {
+                loadHistory(currentCourseId);
+            }
+        }
+
+        function retryQuiz() {
+            document.getElementById('quizResults').classList.add('hidden');
+            selectedAnswers = {};
+            generateQuestions();
+        }
+
+        loadCourses();
+    </script>
+</body>
+</html>

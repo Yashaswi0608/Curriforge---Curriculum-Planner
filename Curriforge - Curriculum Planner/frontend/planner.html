@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Planner - CurriForge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <button class="mobile-menu-btn" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+    <div class="page-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon">🎓</div>
+                <h2>CurriForge</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item" data-page="dashboard">
+                    <span class="nav-icon">📊</span> Dashboard
+                </a>
+                <a href="/enroll" class="nav-item" data-page="enroll">
+                    <span class="nav-icon">➕</span> Enroll Course
+                </a>
+                <a href="/courses" class="nav-item" data-page="courses">
+                    <span class="nav-icon">📚</span> My Courses
+                </a>
+                <a href="/practice" class="nav-item" data-page="practice">
+                    <span class="nav-icon">🧠</span> Practice Hub
+                </a>
+                <a href="/profile" class="nav-item" data-page="profile">
+                    <span class="nav-icon">👤</span> Profile
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info" onclick="window.location.href='/profile'">
+                    <div class="user-avatar">U</div>
+                    <div class="user-details">
+                        <div class="name">User</div>
+                        <div class="email">user@email.com</div>
+                    </div>
+                </div>
+                <a href="#" class="nav-item" onclick="logout()" style="margin-top:8px;color:var(--danger);">
+                    <span class="nav-icon">🚪</span> Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 id="courseTitle">Course Planner 📋</h1>
+                        <p id="courseDesc" class="text-muted"></p>
+                    </div>
+                    <div class="flex gap-8">
+                        <a href="/courses" class="btn btn-secondary">← Back to Courses</a>
+                        <a id="practiceLink" href="/practice" class="btn btn-primary">🧠 Practice</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Course Progress -->
+            <div class="card mb-24">
+                <div class="grid-4">
+                    <div class="stat-card" style="border:none;padding:16px">
+                        <div class="stat-icon primary">📊</div>
+                        <div class="stat-info">
+                            <h3 id="progressPercent">0%</h3>
+                            <p>Progress</p>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="border:none;padding:16px">
+                        <div class="stat-icon success">✅</div>
+                        <div class="stat-info">
+                            <h3 id="completedCount">0</h3>
+                            <p>Completed</p>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="border:none;padding:16px">
+                        <div class="stat-icon warning">📝</div>
+                        <div class="stat-info">
+                            <h3 id="totalCount">0</h3>
+                            <p>Total Topics</p>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="border:none;padding:16px">
+                        <div class="stat-icon" id="statusIcon">⏳</div>
+                        <div class="stat-info">
+                            <h3 id="courseStatus">Ongoing</h3>
+                            <p>Status</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="progress-bar" style="height:12px;margin-top:16px">
+                    <div class="progress-fill" id="progressBar" style="width:0%"></div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" onclick="switchPlannerTab('checklist')">✅ Checklist</button>
+                <button class="tab" onclick="switchPlannerTab('roadmap')">🗺️ Roadmap</button>
+                <button class="tab" onclick="switchPlannerTab('resources')">📎 Resources</button>
+                <button class="tab" onclick="switchPlannerTab('schedule')">📅 Schedule</button>
+                <button class="tab" onclick="switchPlannerTab('chart')">📈 Learning Curve</button>
+                <button class="tab" onclick="switchPlannerTab('aichat')">💬 Ask AI</button>
+            </div>
+
+            <!-- Checklist Tab -->
+            <div class="tab-content active" id="tab-checklist">
+                <div class="topic-list" id="topicChecklist">
+                    <div class="empty-state">
+                        <div class="loading-spinner"></div>
+                        <p class="mt-16">Loading topics...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Roadmap Tab -->
+            <div class="tab-content" id="tab-roadmap">
+                <div class="roadmap-timeline" id="roadmapContent"></div>
+            </div>
+
+            <!-- Resources Tab -->
+            <div class="tab-content" id="tab-resources">
+                <div class="grid-2" id="resourcesContent"></div>
+            </div>
+
+            <!-- Schedule Tab -->
+            <div class="tab-content" id="tab-schedule">
+                <div class="card" id="scheduleContent"></div>
+            </div>
+
+            <!-- Learning Curve Tab -->
+            <div class="tab-content" id="tab-chart">
+                <div class="card">
+                    <h3 class="card-title mb-16">📈 Your Learning Curve</h3>
+                    <div style="height:300px">
+                        <canvas id="learningCurveChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Chat Tab -->
+            <div class="tab-content" id="tab-aichat">
+                <div class="chat-container" style="height:500px">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="chat-bubble ai">
+                            👋 Hi! I'm your AI learning assistant. Ask me anything about this course, your study plan, or any topic you'd like to understand better!
+                        </div>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" class="chat-input" id="chatInput" placeholder="Ask about your course, planner, or study tips..." onkeypress="if(event.key==='Enter') sendChat()">
+                        <button class="btn btn-primary" onclick="sendChat()">Send</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script>
+        if (!requireAuth()) throw new Error('Not authenticated');
+        setupSidebar('courses');
+
+        // Get course ID from URL
+        const pathParts = window.location.pathname.split('/');
+        const courseId = parseInt(pathParts[pathParts.length - 1]);
+
+        if (!courseId || isNaN(courseId)) {
+            window.location.href = '/courses';
+        }
+
+        let courseData = null;
+
+        async function loadCourse() {
+            try {
+                courseData = await apiFetch(`/courses/${courseId}`);
+                if (!courseData) {
+                    window.location.href = '/courses';
+                    return;
+                }
+
+                // Set header
+                document.getElementById('courseTitle').textContent = courseData.title;
+                document.getElementById('courseDesc').textContent = courseData.description || '';
+                document.getElementById('practiceLink').href = `/practice?course=${courseId}`;
+
+                // Stats
+                document.getElementById('progressPercent').textContent = Math.round(courseData.progress) + '%';
+                document.getElementById('completedCount').textContent = courseData.completed_topics;
+                document.getElementById('totalCount').textContent = courseData.total_topics;
+                document.getElementById('courseStatus').textContent = courseData.status === 'completed' ? 'Completed! 🎉' : 'Ongoing';
+                document.getElementById('progressBar').style.width = courseData.progress + '%';
+
+                if (courseData.status === 'completed') {
+                    document.getElementById('statusIcon').className = 'stat-icon success';
+                    document.getElementById('statusIcon').textContent = '🎉';
+                }
+
+                // Render checklist
+                renderChecklist(courseData.topics);
+
+                // Render roadmap
+                renderRoadmap(courseData.roadmap);
+
+                // Render resources
+                renderResources(courseData.resources);
+
+                // Render schedule
+                renderSchedule(courseData.schedule);
+
+                // Render learning curve
+                const scores = courseData.learning_scores || [];
+                if (scores.length > 0) {
+                    createLearningChart('learningCurveChart', {
+                        labels: scores.map((s, i) => s.topic ? s.topic.substring(0, 15) : `Quiz ${i + 1}`),
+                        scores: scores.map(s => s.score || 0),
+                    });
+                } else {
+                    document.getElementById('learningCurveChart').parentElement.innerHTML += '<p class="text-muted text-center mt-16">Complete practice sessions to see your learning curve!</p>';
+                }
+
+            } catch (err) {
+                showToast('Failed to load course', 'error');
+                console.error(err);
+            }
+        }
+
+        function renderChecklist(topics) {
+            const container = document.getElementById('topicChecklist');
+            if (!topics || topics.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>No topics found</p></div>';
+                return;
+            }
+
+            let currentWeek = 0;
+            let html = '';
+
+            topics.forEach(topic => {
+                if (topic.week !== currentWeek) {
+                    currentWeek = topic.week;
+                    html += `<div class="week-header">📅 Week ${currentWeek}</div>`;
+                }
+
+                const resources = topic.resources || [];
+                html += `
+                    <div class="topic-item ${topic.is_completed ? 'completed' : ''}" id="topic-${topic.id}">
+                        <input type="checkbox" class="topic-checkbox"
+                               ${topic.is_completed ? 'checked' : ''}
+                               onchange="toggleTopic(${topic.id})"
+                               id="check-${topic.id}">
+                        <div class="topic-content">
+                            <div class="topic-title">${escapeHtml(topic.title)}</div>
+                            <div class="topic-desc">${escapeHtml(topic.description || '')}</div>
+                            <div class="topic-meta">
+                                <span>📅 Day ${topic.day || topic.order_index + 1}</span>
+                                <span>⏱️ ${topic.duration_minutes || 60} min</span>
+                                ${topic.is_completed && topic.completed_at ? `<span>✅ ${formatDate(topic.completed_at)}</span>` : ''}
+                            </div>
+                            ${resources.length > 0 ? `
+                                <div class="mt-8 flex flex-wrap gap-8">
+                                    ${resources.map(r => `
+                                        <a href="${r.url || '#'}" target="_blank" style="font-size:0.8rem;color:var(--accent)">
+                                            📎 ${escapeHtml(r.name || r.platform || 'Resource')}
+                                        </a>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                        <button class="btn btn-sm btn-secondary" onclick="practiceTopic(${topic.id}, '${escapeHtml(topic.title).replace(/'/g, "\\'")}')">
+                            🧠 Practice
+                        </button>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function renderRoadmap(roadmap) {
+            const container = document.getElementById('roadmapContent');
+            const phases = roadmap?.phases || [];
+
+            if (phases.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>No roadmap data</p></div>';
+                return;
+            }
+
+            container.innerHTML = phases.map(p => `
+                <div class="roadmap-phase">
+                    <h4>${escapeHtml(p.name)}</h4>
+                    <div class="phase-weeks">📅 Weeks ${p.weeks}</div>
+                    <p>${escapeHtml(p.focus)}</p>
+                    ${p.milestones ? `
+                        <div class="mt-8">
+                            ${p.milestones.map(m => `<span class="badge badge-primary" style="margin:2px">${escapeHtml(m)}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function renderResources(resources) {
+            const container = document.getElementById('resourcesContent');
+            const free = resources?.free || [];
+            const paid = resources?.paid || [];
+
+            container.innerHTML = `
+                <div>
+                    <h3 class="mb-16" style="color:var(--success)">🆓 Free Resources</h3>
+                    ${free.map(r => `
+                        <a href="${r.url || '#'}" target="_blank" class="resource-item" style="text-decoration:none">
+                            <span class="resource-type free">FREE</span>
+                            <div style="flex:1">
+                                <div style="font-weight:600">${escapeHtml(r.name)}</div>
+                                <div class="text-muted" style="font-size:0.8rem">${escapeHtml(r.platform || '')} — ${escapeHtml(r.description || '')}</div>
+                            </div>
+                        </a>
+                    `).join('') || '<p class="text-muted">No free resources</p>'}
+                </div>
+                <div>
+                    <h3 class="mb-16" style="color:var(--warning)">💰 Paid Resources</h3>
+                    ${paid.map(r => `
+                        <a href="${r.url || '#'}" target="_blank" class="resource-item" style="text-decoration:none">
+                            <span class="resource-type paid">${r.price || 'PAID'}</span>
+                            <div style="flex:1">
+                                <div style="font-weight:600">${escapeHtml(r.name)}</div>
+                                <div class="text-muted" style="font-size:0.8rem">${escapeHtml(r.platform || '')} — ${escapeHtml(r.description || '')}</div>
+                            </div>
+                        </a>
+                    `).join('') || '<p class="text-muted">No paid resources</p>'}
+                </div>
+            `;
+        }
+
+        function renderSchedule(schedule) {
+            const container = document.getElementById('scheduleContent');
+            if (!schedule) {
+                container.innerHTML = '<p class="text-muted">No schedule data</p>';
+                return;
+            }
+
+            container.innerHTML = `
+                <h4 class="mb-16" style="color:var(--primary-light)">📅 Your Study Schedule</h4>
+                ${schedule.daily_plan ? `<div class="mb-16"><strong>Daily Plan:</strong><p class="text-muted mt-8">${escapeHtml(schedule.daily_plan)}</p></div>` : ''}
+                ${schedule.weekly_structure ? `<div class="mb-16"><strong>Weekly Structure:</strong><p class="text-muted mt-8">${escapeHtml(schedule.weekly_structure)}</p></div>` : ''}
+                ${schedule.tips ? `
+                    <div>
+                        <strong>💡 Study Tips:</strong>
+                        <ul style="margin-top:8px;padding-left:20px">
+                            ${schedule.tips.map(t => `<li style="padding:4px 0;color:var(--text-secondary)">${escapeHtml(t)}</li>`).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        async function toggleTopic(topicId) {
+            try {
+                const result = await apiFetch(`/courses/${courseId}/topics/${topicId}/toggle`, {
+                    method: 'PUT',
+                });
+
+                if (result) {
+                    // Update UI
+                    const topicEl = document.getElementById(`topic-${topicId}`);
+                    if (result.is_completed) {
+                        topicEl.classList.add('completed');
+                    } else {
+                        topicEl.classList.remove('completed');
+                    }
+
+                    document.getElementById('progressPercent').textContent = Math.round(result.course_progress) + '%';
+                    document.getElementById('completedCount').textContent = result.completed_topics;
+                    document.getElementById('progressBar').style.width = result.course_progress + '%';
+
+                    if (result.course_status === 'completed') {
+                        document.getElementById('courseStatus').textContent = 'Completed! 🎉';
+                        document.getElementById('statusIcon').className = 'stat-icon success';
+                        document.getElementById('statusIcon').textContent = '🎉';
+                        showToast('🎉 Congratulations! Course completed!', 'success');
+                    } else {
+                        document.getElementById('courseStatus').textContent = 'Ongoing';
+                        document.getElementById('statusIcon').className = 'stat-icon warning';
+                        document.getElementById('statusIcon').textContent = '⏳';
+                    }
+                }
+            } catch (err) {
+                showToast('Failed to update topic', 'error');
+                // Revert checkbox
+                document.getElementById(`check-${topicId}`).checked = !document.getElementById(`check-${topicId}`).checked;
+            }
+        }
+
+        function practiceTopic(topicId, topicTitle) {
+            window.location.href = `/practice?course=${courseId}&topic=${topicId}&title=${encodeURIComponent(topicTitle)}`;
+        }
+
+        function switchPlannerTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+        }
+
+        async function sendChat() {
+            const input = document.getElementById('chatInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            const messagesEl = document.getElementById('chatMessages');
+
+            // Add user message
+            messagesEl.innerHTML += `<div class="chat-bubble user">${escapeHtml(msg)}</div>`;
+            input.value = '';
+
+            // Add loading
+            const loadingId = 'loading-' + Date.now();
+            messagesEl.innerHTML += `<div class="chat-bubble ai" id="${loadingId}"><div class="loading-spinner" style="width:20px;height:20px;border-width:2px"></div> Thinking...</div>`;
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+
+            try {
+                const data = await apiFetch('/chat/ask', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        message: msg,
+                        course_id: courseId,
+                    }),
+                });
+
+                const loadingEl = document.getElementById(loadingId);
+                if (data && loadingEl) {
+                    loadingEl.innerHTML = markdownToHtml(data.response);
+                }
+            } catch (err) {
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) {
+                    loadingEl.innerHTML = `<span style="color:var(--danger)">Error: ${err.message}</span>`;
+                }
+            }
+
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        loadCourse();
+    </script>
+</body>
+</html>

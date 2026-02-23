@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - CurriForge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <button class="mobile-menu-btn" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+    <div class="page-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon">🎓</div>
+                <h2>CurriForge</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item" data-page="dashboard">
+                    <span class="nav-icon">📊</span> Dashboard
+                </a>
+                <a href="/enroll" class="nav-item" data-page="enroll">
+                    <span class="nav-icon">➕</span> Enroll Course
+                </a>
+                <a href="/courses" class="nav-item" data-page="courses">
+                    <span class="nav-icon">📚</span> My Courses
+                </a>
+                <a href="/practice" class="nav-item" data-page="practice">
+                    <span class="nav-icon">🧠</span> Practice Hub
+                </a>
+                <a href="/profile" class="nav-item" data-page="profile">
+                    <span class="nav-icon">👤</span> Profile
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info" onclick="window.location.href='/profile'">
+                    <div class="user-avatar">U</div>
+                    <div class="user-details">
+                        <div class="name">User</div>
+                        <div class="email">user@email.com</div>
+                    </div>
+                </div>
+                <a href="#" class="nav-item" onclick="logout()" style="margin-top:8px;color:var(--danger);">
+                    <span class="nav-icon">🚪</span> Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>My Profile 👤</h1>
+                <p>Manage your learning profile and preferences</p>
+            </div>
+
+            <div class="grid-2">
+                <!-- Profile Info -->
+                <div class="card">
+                    <div class="text-center mb-24">
+                        <div class="user-avatar" style="width:80px;height:80px;font-size:2rem;margin:0 auto" id="profileAvatar">U</div>
+                        <h2 class="mt-16" id="profileName">User</h2>
+                        <p class="text-muted" id="profileEmail">user@email.com</p>
+                    </div>
+
+                    <form onsubmit="updateProfile(event)">
+                        <div class="form-group">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" class="form-input" id="profName">
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label class="form-label">Phone</label>
+                                <input type="tel" class="form-input" id="profPhone">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Age</label>
+                                <input type="number" class="form-input" id="profAge" min="10" max="100">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Educational Qualification</label>
+                            <select class="form-select" id="profQualification">
+                                <option value="">Select</option>
+                                <option value="High School">High School</option>
+                                <option value="Diploma">Diploma</option>
+                                <option value="Undergraduate">Undergraduate</option>
+                                <option value="Postgraduate">Postgraduate</option>
+                                <option value="PhD">PhD / Doctorate</option>
+                                <option value="Self-taught">Self-taught / Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Educational Interests</label>
+                            <input type="text" class="form-input" id="profInterests" placeholder="AI, Web Dev, Data Science">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full" id="saveBtn">Save Changes</button>
+                    </form>
+                </div>
+
+                <!-- Lifestyle -->
+                <div class="card">
+                    <h3 class="card-title mb-24">🏃 Lifestyle & Habits</h3>
+                    <form onsubmit="updateLifestyle(event)">
+                        <div class="form-group">
+                            <label class="form-label">Hobbies & Timings</label>
+                            <textarea class="form-textarea" id="profHobbies" placeholder="e.g., Cricket (6-8pm), Reading (9-10pm)"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Daily Habits & Routine</label>
+                            <textarea class="form-textarea" id="profHabits" placeholder="e.g., Wake up at 7am, Work 9-5pm, Free 6-10pm"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Available Study Time</label>
+                            <input type="text" class="form-input" id="profRoutine" placeholder="e.g., 2-3 hours in the evening">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full">Save Lifestyle</button>
+                    </form>
+
+                    <div class="mt-24" style="border-top:1px solid var(--border);padding-top:24px">
+                        <h4 class="mb-16 text-muted">Account Actions</h4>
+                        <button class="btn btn-danger btn-full" onclick="logout()">🚪 Logout</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script>
+        if (!requireAuth()) throw new Error('Not authenticated');
+        setupSidebar('profile');
+
+        async function loadProfile() {
+            try {
+                const user = await apiFetch('/auth/me');
+                if (!user) return;
+
+                document.getElementById('profileAvatar').textContent = (user.name || 'U')[0].toUpperCase();
+                document.getElementById('profileName').textContent = user.name || 'User';
+                document.getElementById('profileEmail').textContent = user.email || '';
+
+                document.getElementById('profName').value = user.name || '';
+                document.getElementById('profPhone').value = user.phone || '';
+                document.getElementById('profAge').value = user.age || '';
+                document.getElementById('profQualification').value = user.educational_qualification || '';
+
+                // Parse interests
+                let interests = user.educational_interests || '';
+                try {
+                    const parsed = JSON.parse(interests);
+                    if (Array.isArray(parsed)) interests = parsed.join(', ');
+                } catch(e) {}
+                document.getElementById('profInterests').value = interests;
+
+                document.getElementById('profHobbies').value = user.hobbies || '';
+                document.getElementById('profHabits').value = user.habits || '';
+                document.getElementById('profRoutine').value = user.daily_routine || '';
+
+                // Update stored user
+                setUser({ id: user.id, name: user.name, email: user.email, avatar_url: user.avatar_url });
+            } catch (err) {
+                showToast('Failed to load profile', 'error');
+            }
+        }
+
+        async function updateProfile(e) {
+            e.preventDefault();
+            try {
+                const interests = document.getElementById('profInterests').value;
+                await apiFetch('/auth/profile', {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        name: document.getElementById('profName').value || undefined,
+                        phone: document.getElementById('profPhone').value || undefined,
+                        age: parseInt(document.getElementById('profAge').value) || undefined,
+                        educational_qualification: document.getElementById('profQualification').value || undefined,
+                        educational_interests: interests ? JSON.stringify(interests.split(',').map(s => s.trim())) : undefined,
+                    }),
+                });
+                showToast('Profile updated!', 'success');
+
+                // Update local storage
+                const user = getUser();
+                user.name = document.getElementById('profName').value;
+                setUser(user);
+            } catch (err) {
+                showToast('Failed to update profile', 'error');
+            }
+        }
+
+        async function updateLifestyle(e) {
+            e.preventDefault();
+            try {
+                await apiFetch('/auth/profile', {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        hobbies: document.getElementById('profHobbies').value || undefined,
+                        habits: document.getElementById('profHabits').value || undefined,
+                        daily_routine: document.getElementById('profRoutine').value || undefined,
+                    }),
+                });
+                showToast('Lifestyle info updated!', 'success');
+            } catch (err) {
+                showToast('Failed to update', 'error');
+            }
+        }
+
+        loadProfile();
+    </script>
+</body>
+</html>

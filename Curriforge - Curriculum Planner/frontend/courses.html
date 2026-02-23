@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Courses - CurriForge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <button class="mobile-menu-btn" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+    <div class="page-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon">🎓</div>
+                <h2>CurriForge</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item" data-page="dashboard">
+                    <span class="nav-icon">📊</span> Dashboard
+                </a>
+                <a href="/enroll" class="nav-item" data-page="enroll">
+                    <span class="nav-icon">➕</span> Enroll Course
+                </a>
+                <a href="/courses" class="nav-item" data-page="courses">
+                    <span class="nav-icon">📚</span> My Courses
+                </a>
+                <a href="/practice" class="nav-item" data-page="practice">
+                    <span class="nav-icon">🧠</span> Practice Hub
+                </a>
+                <a href="/profile" class="nav-item" data-page="profile">
+                    <span class="nav-icon">👤</span> Profile
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info" onclick="window.location.href='/profile'">
+                    <div class="user-avatar">U</div>
+                    <div class="user-details">
+                        <div class="name">User</div>
+                        <div class="email">user@email.com</div>
+                    </div>
+                </div>
+                <a href="#" class="nav-item" onclick="logout()" style="margin-top:8px;color:var(--danger);">
+                    <span class="nav-icon">🚪</span> Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1>My Courses 📚</h1>
+                        <p>All your enrolled courses and learning progress</p>
+                    </div>
+                    <a href="/enroll" class="btn btn-primary">➕ Enroll New Course</a>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="flex gap-8 mb-24">
+                <button class="tab active" onclick="filterCourses('all', this)">All</button>
+                <button class="tab" onclick="filterCourses('ongoing', this)">Ongoing</button>
+                <button class="tab" onclick="filterCourses('completed', this)">Completed</button>
+            </div>
+
+            <!-- Courses Grid -->
+            <div class="grid-3" id="coursesGrid">
+                <div class="empty-state" style="grid-column:1/-1">
+                    <div class="empty-icon">📚</div>
+                    <h3>No courses yet</h3>
+                    <p class="text-muted">Start your learning journey by enrolling in a new course!</p>
+                    <a href="/enroll" class="btn btn-primary mt-16">Enroll Your First Course</a>
+                </div>
+            </div>
+
+            <!-- Course Detail Modal -->
+            <div class="modal-overlay" id="courseModal">
+                <div class="modal" style="max-width:700px">
+                    <div class="flex justify-between items-center mb-24">
+                        <h2 id="modalTitle">Course Title</h2>
+                        <button class="btn btn-secondary btn-sm" onclick="closeModal()">✕</button>
+                    </div>
+                    <div id="modalContent"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script>
+        if (!requireAuth()) throw new Error('Not authenticated');
+        setupSidebar('courses');
+
+        let allCourses = [];
+
+        async function loadCourses() {
+            try {
+                const data = await apiFetch('/courses/');
+                allCourses = data || [];
+                renderCourses(allCourses);
+            } catch (err) {
+                showToast('Failed to load courses', 'error');
+            }
+        }
+
+        function renderCourses(courses) {
+            const grid = document.getElementById('coursesGrid');
+
+            if (!courses || courses.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column:1/-1">
+                        <div class="empty-icon">📚</div>
+                        <h3>No courses found</h3>
+                        <p class="text-muted">Start your learning journey!</p>
+                        <a href="/enroll" class="btn btn-primary mt-16">Enroll Now</a>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = courses.map(c => `
+                <div class="course-card" onclick="viewCourse(${c.id})">
+                    <div class="flex justify-between items-center mb-8">
+                        <span class="course-status ${c.status}">${c.status}</span>
+                        <span class="course-level">${c.level || 'beginner'}</span>
+                    </div>
+                    <h3 style="margin-bottom:8px;font-size:1.1rem">${escapeHtml(c.title)}</h3>
+                    <p class="text-muted" style="font-size:0.85rem;margin-bottom:12px">${escapeHtml((c.description || '').substring(0, 100))}...</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width:${c.progress || 0}%"></div>
+                    </div>
+                    <div class="flex justify-between mt-8">
+                        <span class="progress-text">${Math.round(c.progress || 0)}% complete</span>
+                        <span class="progress-text">${c.completed_topics || 0}/${c.total_topics || 0} topics</span>
+                    </div>
+                    <div class="flex gap-8 mt-16">
+                        <a href="/planner/${c.id}" class="btn btn-sm btn-primary" onclick="event.stopPropagation()">📋 Planner</a>
+                        <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteCourse(${c.id})">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterCourses(filter, btn) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+
+            if (filter === 'all') {
+                renderCourses(allCourses);
+            } else {
+                renderCourses(allCourses.filter(c => c.status === filter));
+            }
+        }
+
+        async function viewCourse(courseId) {
+            try {
+                const course = await apiFetch(`/courses/${courseId}`);
+                if (!course) return;
+
+                document.getElementById('modalTitle').textContent = course.title;
+
+                const scores = course.learning_scores || [];
+                const chartId = `chart-${courseId}`;
+
+                document.getElementById('modalContent').innerHTML = `
+                    <div class="flex gap-16 mb-16">
+                        <span class="course-status ${course.status}">${course.status}</span>
+                        <span class="course-level">${course.level || 'beginner'}</span>
+                        <span class="text-muted">Enrolled: ${formatDate(course.enrolled_at)}</span>
+                    </div>
+
+                    <p style="margin-bottom:16px">${escapeHtml(course.description || '')}</p>
+
+                    <div class="progress-bar" style="height:12px;margin-bottom:8px">
+                        <div class="progress-fill" style="width:${course.progress}%"></div>
+                    </div>
+                    <p class="text-muted mb-24">${Math.round(course.progress)}% complete — ${course.completed_topics}/${course.total_topics} topics</p>
+
+                    ${course.reason ? `<p class="mb-16"><strong>Reason:</strong> ${escapeHtml(course.reason)}</p>` : ''}
+
+                    <h4 class="mb-8">📈 Learning Curve</h4>
+                    <div style="height:200px;margin-bottom:24px">
+                        <canvas id="${chartId}"></canvas>
+                    </div>
+
+                    <div class="flex gap-8 mt-16">
+                        <a href="/planner/${course.id}" class="btn btn-primary">📋 Open Planner</a>
+                        <a href="/practice?course=${course.id}" class="btn btn-secondary">🧠 Practice</a>
+                        <button class="btn btn-danger" onclick="deleteCourse(${course.id}); closeModal();">🗑️ Delete</button>
+                    </div>
+                `;
+
+                // Learning curve chart
+                const labels = scores.map((s, i) => s.topic ? s.topic.substring(0, 12) : `Quiz ${i + 1}`);
+                const scoreValues = scores.map(s => s.score || 0);
+                if (labels.length > 0) {
+                    createLearningChart(chartId, { labels, scores: scoreValues });
+                }
+
+                document.getElementById('courseModal').classList.add('active');
+            } catch (err) {
+                showToast('Failed to load course details', 'error');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('courseModal').classList.remove('active');
+        }
+
+        async function deleteCourse(courseId) {
+            if (!confirm('Are you sure you want to delete this course?')) return;
+            try {
+                await apiFetch(`/courses/${courseId}`, { method: 'DELETE' });
+                showToast('Course deleted', 'success');
+                loadCourses();
+            } catch (err) {
+                showToast('Failed to delete course', 'error');
+            }
+        }
+
+        loadCourses();
+    </script>
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurriForge - AI-Powered Curriculum Designer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="auth-container">
+        <!-- LOGIN FORM -->
+        <div class="auth-card" id="loginCard">
+            <div class="auth-logo">
+                <div class="logo-icon">🎓</div>
+                <h1>CurriForge</h1>
+                <p>AI-Powered Curriculum Design System</p>
+            </div>
+
+            <button class="google-btn" id="googleSignIn" onclick="googleLogin()">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                Continue with Google
+            </button>
+
+            <div class="auth-divider">or sign in with email</div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-input" id="loginEmail" placeholder="you@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-input" id="loginPassword" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full btn-lg" id="loginBtn">
+                    Sign In
+                </button>
+            </form>
+
+            <div class="auth-switch">
+                Don't have an account? <a href="#" onclick="showSignup()">Sign Up</a>
+            </div>
+        </div>
+
+        <!-- SIGNUP FORM -->
+        <div class="auth-card hidden" id="signupCard">
+            <div class="auth-logo">
+                <div class="logo-icon">🎓</div>
+                <h1>Join CurriForge</h1>
+                <p>Create your personalized learning profile</p>
+            </div>
+
+            <div class="profile-steps" id="profileSteps">
+                <div class="step-dot active" data-step="1"></div>
+                <div class="step-dot" data-step="2"></div>
+                <div class="step-dot" data-step="3"></div>
+            </div>
+
+            <!-- Step 1: Basic Info -->
+            <form id="signupStep1" class="signup-step">
+                <div class="form-group">
+                    <label class="form-label">Full Name *</label>
+                    <input type="text" class="form-input" id="signupName" placeholder="John Doe" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email *</label>
+                    <input type="email" class="form-input" id="signupEmail" placeholder="you@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password *</label>
+                    <input type="password" class="form-input" id="signupPassword" placeholder="Min 6 characters" required minlength="6">
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Phone</label>
+                        <input type="tel" class="form-input" id="signupPhone" placeholder="+91 9876543210">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Age *</label>
+                        <input type="number" class="form-input" id="signupAge" placeholder="20" min="10" max="100" required>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-primary btn-full" onclick="nextStep(2)">
+                    Next →
+                </button>
+            </form>
+
+            <!-- Step 2: Education -->
+            <form id="signupStep2" class="signup-step hidden">
+                <div class="form-group">
+                    <label class="form-label">Educational Qualification *</label>
+                    <select class="form-select" id="signupQualification" required>
+                        <option value="">Select your qualification</option>
+                        <option value="High School">High School</option>
+                        <option value="Diploma">Diploma</option>
+                        <option value="Undergraduate">Undergraduate (B.Tech/B.Sc/BCA/etc.)</option>
+                        <option value="Postgraduate">Postgraduate (M.Tech/M.Sc/MCA/etc.)</option>
+                        <option value="PhD">PhD / Doctorate</option>
+                        <option value="Self-taught">Self-taught / Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Educational Interests</label>
+                    <input type="text" class="form-input" id="signupInterests" placeholder="e.g., AI, Web Development, Data Science (comma separated)">
+                </div>
+                <div class="flex gap-8">
+                    <button type="button" class="btn btn-secondary" onclick="prevStep(1)">← Back</button>
+                    <button type="button" class="btn btn-primary" style="flex:1" onclick="nextStep(3)">Next →</button>
+                </div>
+            </form>
+
+            <!-- Step 3: Lifestyle -->
+            <form id="signupStep3" class="signup-step hidden">
+                <div class="form-group">
+                    <label class="form-label">Hobbies & Timings</label>
+                    <textarea class="form-textarea" id="signupHobbies" placeholder="e.g., Cricket (6-8pm), Reading (9-10pm), Gaming (weekends)"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Daily Habits & Routine</label>
+                    <textarea class="form-textarea" id="signupHabits" placeholder="e.g., Wake up at 7am, College 9am-4pm, Free time 5-9pm, Sleep by 11pm"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Available study hours per day</label>
+                    <input type="text" class="form-input" id="signupRoutine" placeholder="e.g., 2-3 hours in evening">
+                </div>
+                <div class="flex gap-8">
+                    <button type="button" class="btn btn-secondary" onclick="prevStep(2)">← Back</button>
+                    <button type="submit" class="btn btn-primary" style="flex:1" onclick="handleSignup(event)" id="signupBtn">
+                        Create Account 🚀
+                    </button>
+                </div>
+            </form>
+
+            <div class="auth-switch">
+                Already have an account? <a href="#" onclick="showLogin()">Sign In</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script>
+        // Redirect if already logged in
+        if (getToken()) {
+            window.location.href = '/dashboard';
+        }
+
+        function showSignup() {
+            document.getElementById('loginCard').classList.add('hidden');
+            document.getElementById('signupCard').classList.remove('hidden');
+        }
+
+        function showLogin() {
+            document.getElementById('signupCard').classList.add('hidden');
+            document.getElementById('loginCard').classList.remove('hidden');
+        }
+
+        let currentStep = 1;
+
+        function nextStep(step) {
+            // Validate current step
+            const currentForm = document.getElementById(`signupStep${currentStep}`);
+            const inputs = currentForm.querySelectorAll('[required]');
+            let valid = true;
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    input.style.borderColor = '#FF4757';
+                    valid = false;
+                } else {
+                    input.style.borderColor = '';
+                }
+            });
+            if (!valid) return;
+
+            document.getElementById(`signupStep${currentStep}`).classList.add('hidden');
+            document.getElementById(`signupStep${step}`).classList.remove('hidden');
+
+            // Update dots
+            document.querySelectorAll('.step-dot').forEach(dot => {
+                const dotStep = parseInt(dot.dataset.step);
+                dot.classList.remove('active', 'completed');
+                if (dotStep === step) dot.classList.add('active');
+                if (dotStep < step) dot.classList.add('completed');
+            });
+
+            currentStep = step;
+        }
+
+        function prevStep(step) {
+            document.getElementById(`signupStep${currentStep}`).classList.add('hidden');
+            document.getElementById(`signupStep${step}`).classList.remove('hidden');
+
+            document.querySelectorAll('.step-dot').forEach(dot => {
+                const dotStep = parseInt(dot.dataset.step);
+                dot.classList.remove('active', 'completed');
+                if (dotStep === step) dot.classList.add('active');
+                if (dotStep < step) dot.classList.add('completed');
+            });
+
+            currentStep = step;
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true;
+            btn.textContent = 'Signing in...';
+
+            try {
+                const data = await apiFetch('/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        email: document.getElementById('loginEmail').value,
+                        password: document.getElementById('loginPassword').value,
+                    }),
+                });
+
+                if (data) {
+                    setToken(data.access_token);
+                    setUser(data.user);
+                    showToast('Welcome back!', 'success');
+                    setTimeout(() => window.location.href = '/dashboard', 500);
+                }
+            } catch (err) {
+                showToast(err.message || 'Login failed', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Sign In';
+            }
+        }
+
+        async function handleSignup(e) {
+            e.preventDefault();
+            const btn = document.getElementById('signupBtn');
+            btn.disabled = true;
+            btn.textContent = 'Creating account...';
+
+            try {
+                const interests = document.getElementById('signupInterests').value;
+                const data = await apiFetch('/auth/signup', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: document.getElementById('signupName').value,
+                        email: document.getElementById('signupEmail').value,
+                        password: document.getElementById('signupPassword').value,
+                        phone: document.getElementById('signupPhone').value || null,
+                        age: parseInt(document.getElementById('signupAge').value) || null,
+                        educational_qualification: document.getElementById('signupQualification').value,
+                        educational_interests: interests ? JSON.stringify(interests.split(',').map(s => s.trim())) : null,
+                        hobbies: document.getElementById('signupHobbies').value || null,
+                        habits: document.getElementById('signupHabits').value || null,
+                        daily_routine: document.getElementById('signupRoutine').value || null,
+                    }),
+                });
+
+                if (data) {
+                    setToken(data.access_token);
+                    setUser(data.user);
+                    showToast('Account created successfully!', 'success');
+                    setTimeout(() => window.location.href = '/dashboard', 500);
+                }
+            } catch (err) {
+                showToast(err.message || 'Signup failed', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Create Account 🚀';
+            }
+        }
+
+        function googleLogin() {
+            showToast('Google OAuth: Set GOOGLE_CLIENT_ID in .env to enable', 'info');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - CurriForge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <button class="mobile-menu-btn" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+    <div class="page-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon">🎓</div>
+                <h2>CurriForge</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item" data-page="dashboard">
+                    <span class="nav-icon">📊</span> Dashboard
+                </a>
+                <a href="/enroll" class="nav-item" data-page="enroll">
+                    <span class="nav-icon">➕</span> Enroll Course
+                </a>
+                <a href="/courses" class="nav-item" data-page="courses">
+                    <span class="nav-icon">📚</span> My Courses
+                </a>
+                <a href="/practice" class="nav-item" data-page="practice">
+                    <span class="nav-icon">🧠</span> Practice Hub
+                </a>
+                <a href="/profile" class="nav-item" data-page="profile">
+                    <span class="nav-icon">👤</span> Profile
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info" onclick="window.location.href='/profile'">
+                    <div class="user-avatar">U</div>
+                    <div class="user-details">
+                        <div class="name">User</div>
+                        <div class="email">user@email.com</div>
+                    </div>
+                </div>
+                <a href="#" class="nav-item" onclick="logout()" style="margin-top:8px;color:var(--danger);">
+                    <span class="nav-icon">🚪</span> Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Welcome back, <span id="userName">User</span>! 👋</h1>
+                <p>Here's your learning overview</p>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid-4 mb-24" id="statsGrid">
+                <div class="stat-card">
+                    <div class="stat-icon primary">📚</div>
+                    <div class="stat-info">
+                        <h3 id="totalCourses">0</h3>
+                        <p>Total Courses</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon warning">⏳</div>
+                    <div class="stat-info">
+                        <h3 id="ongoingCount">0</h3>
+                        <p>Ongoing</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon success">✅</div>
+                    <div class="stat-info">
+                        <h3 id="completedCount">0</h3>
+                        <p>Completed</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon danger">🔥</div>
+                    <div class="stat-info">
+                        <h3 id="streakCount">0</h3>
+                        <p>Day Streak</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2 mb-24">
+                <!-- Recent Courses -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Recent Courses</h3>
+                        <a href="/courses" class="btn btn-sm btn-secondary">View All</a>
+                    </div>
+                    <div id="recentCourses" class="flex flex-col gap-8">
+                        <div class="empty-state" style="padding:30px">
+                            <p class="text-muted">No courses yet. <a href="/enroll">Enroll now!</a></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Learning Curve Chart -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Learning Curve</h3>
+                    </div>
+                    <div style="height: 250px; position: relative;">
+                        <canvas id="learningChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- Ongoing Courses -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Ongoing Courses</h3>
+                    </div>
+                    <div id="ongoingCourses" class="flex flex-col gap-8">
+                        <div class="empty-state" style="padding:30px">
+                            <p class="text-muted">No ongoing courses</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Completed Courses -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Completed Courses</h3>
+                    </div>
+                    <div id="completedCourses" class="flex flex-col gap-8">
+                        <div class="empty-state" style="padding:30px">
+                            <p class="text-muted">Complete your first course!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card mt-24">
+                <div class="card-header">
+                    <h3 class="card-title">Quick Actions</h3>
+                </div>
+                <div class="flex gap-16 flex-wrap">
+                    <a href="/enroll" class="btn btn-primary">➕ Enroll New Course with AI</a>
+                    <a href="/practice" class="btn btn-secondary">🧠 Practice Hub</a>
+                    <a href="/courses" class="btn btn-secondary">📚 View All Courses</a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script>
+        if (!requireAuth()) throw new Error('Not authenticated');
+
+        setupSidebar('dashboard');
+
+        async function loadDashboard() {
+            try {
+                const data = await apiFetch('/courses/dashboard');
+                if (!data) return;
+
+                // User greeting
+                document.getElementById('userName').textContent = data.user?.name || 'User';
+
+                // Stats
+                document.getElementById('totalCourses').textContent = data.total_courses || 0;
+                document.getElementById('ongoingCount').textContent = data.ongoing_count || 0;
+                document.getElementById('completedCount').textContent = data.completed_count || 0;
+
+                // Recent courses
+                const recentEl = document.getElementById('recentCourses');
+                if (data.recent_courses && data.recent_courses.length > 0) {
+                    recentEl.innerHTML = data.recent_courses.map(c => `
+                        <div class="course-card" onclick="window.location.href='/planner/${c.id}'" style="cursor:pointer">
+                            <div class="flex justify-between items-center mb-8">
+                                <h4>${escapeHtml(c.title)}</h4>
+                                <span class="course-status ${c.status}">${c.status}</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width:${c.progress || 0}%"></div>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="progress-text">${Math.round(c.progress || 0)}% complete</span>
+                                <span class="course-level">${c.level || 'beginner'}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                // Ongoing courses
+                const ongoingEl = document.getElementById('ongoingCourses');
+                if (data.ongoing_courses && data.ongoing_courses.length > 0) {
+                    ongoingEl.innerHTML = data.ongoing_courses.map(c => `
+                        <div class="flex items-center justify-between" style="padding:12px;background:var(--bg-input);border-radius:8px;cursor:pointer" onclick="window.location.href='/planner/${c.id}'">
+                            <div>
+                                <strong>${escapeHtml(c.title)}</strong>
+                                <span class="course-level">${c.level || ''}</span>
+                            </div>
+                            <span class="badge badge-primary">${Math.round(c.progress || 0)}%</span>
+                        </div>
+                    `).join('');
+                }
+
+                // Completed courses
+                const completedEl = document.getElementById('completedCourses');
+                if (data.completed_courses && data.completed_courses.length > 0) {
+                    completedEl.innerHTML = data.completed_courses.map(c => `
+                        <div class="flex items-center justify-between" style="padding:12px;background:var(--bg-input);border-radius:8px">
+                            <strong>${escapeHtml(c.title)}</strong>
+                            <span class="badge badge-success">✅ Completed</span>
+                        </div>
+                    `).join('');
+                }
+
+                // Learning curve chart
+                const chartLabels = [];
+                const chartScores = [];
+                data.learning_data?.forEach(course => {
+                    course.scores?.forEach(s => {
+                        chartLabels.push(s.topic ? s.topic.substring(0, 15) : 'Quiz');
+                        chartScores.push(s.score || 0);
+                    });
+                });
+
+                if (chartLabels.length > 0) {
+                    createLearningChart('learningChart', { labels: chartLabels, scores: chartScores });
+                } else {
+                    createLearningChart('learningChart', {
+                        labels: ['Start'],
+                        scores: [0]
+                    });
+                }
+
+            } catch (err) {
+                showToast('Failed to load dashboard', 'error');
+                console.error(err);
+            }
+        }
+
+        loadDashboard();
+    </script>
+</body>
+</html>
