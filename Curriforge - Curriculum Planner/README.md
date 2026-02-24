@@ -25,10 +25,10 @@
 |-------|-----------|
 | **Backend** | Python, FastAPI, SQLAlchemy, SQLite |
 | **Frontend** | HTML5, CSS3, Vanilla JavaScript |
-| **AI Engine** | GROQ 2.5 |
+| **AI Engine** | GROQ llama 3.3 |
 | **Auth** | JWT (JSON Web Tokens) + Google OAuth |
 | **Charts** | Chart.js |
-| **API** | RESTful APIs |
+| **API** | groq APIs |
 
 ---
 
@@ -155,4 +155,5 @@ Navigate to: **http://localhost:8000**
 ## 📝 License
 
 This project was built for the GEN AI FORGE Hackathon.
+
 
