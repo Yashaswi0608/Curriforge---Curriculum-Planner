@@ -1,10 +1,41 @@
 import json
-import google.generativeai as genai
+from groq import Groq
 from config import settings
 
-# Configure Gemini
-genai.configure(api_key=settings.GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-1.5-flash")
+# Configure Groq
+client = Groq(api_key=settings.GROQ_API_KEY)
+MODEL = "llama-3.3-70b-versatile"
+
+
+def _chat(prompt: str, *, max_tokens: int = 8192, temperature: float = 0.7) -> str:
+    """Send a single-turn chat completion to Groq and return the text."""
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=max_tokens,
+        temperature=temperature,
+    )
+    return response.choices[0].message.content.strip()
+
+
+def _parse_json(text: str) -> dict:
+    """Extract and parse JSON from an LLM response."""
+    # Strip markdown fences
+    if text.startswith("```json"):
+        text = text[7:]
+    if text.startswith("```"):
+        text = text[3:]
+    if text.endswith("```"):
+        text = text[:-3]
+    text = text.strip()
+
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        # Try extracting the first JSON object
+        start = text.index("{")
+        end = text.rindex("}") + 1
+        return json.loads(text[start:end])
 
 
 async def generate_curriculum(
@@ -15,7 +46,7 @@ async def generate_curriculum(
     daily_hours: float,
     user_profile: dict,
 ) -> dict:
-    """Generate a full personalized curriculum using Gemini AI."""
+    """Generate a full personalized curriculum using Groq AI."""
 
     prompt = f"""You are an expert curriculum designer. Create a detailed, personalized curriculum for the following:
 
@@ -50,7 +81,7 @@ Generate a comprehensive JSON response with this EXACT structure:
             "description": "What will be covered",
             "duration_minutes": 60,
             "resources": [
-                {{"name": "Resource Name", "url": "https://...", "type": "free/paid", "platform": "YouTube/Coursera/etc"}}
+                {{"name": "Resource Name", "url": "https://www.youtube.com/results?search_query=TOPIC+tutorial", "type": "free", "platform": "YouTube"}}
             ]
         }}
     ],
@@ -71,51 +102,45 @@ Generate a comprehensive JSON response with this EXACT structure:
     }},
     "resources": {{
         "free": [
-            {{"name": "Resource", "url": "https://...", "platform": "Platform name", "description": "Brief desc"}}
+            {{"name": "Resource name", "url": "https://www.youtube.com/results?search_query=TOPIC+tutorial", "platform": "YouTube", "description": "Brief desc"}},
+            {{"name": "Resource name", "url": "https://www.freecodecamp.org/news/search/?query=TOPIC", "platform": "freeCodeCamp", "description": "Brief desc"}}
         ],
-        "paid": [
-            {{"name": "Resource", "url": "https://...", "platform": "Platform name", "price": "$XX", "description": "Brief desc"}}
-        ]
+        "paid": []
     }}
 }}
 
-IMPORTANT:
+IMPORTANT - RESOURCE URL RULES (follow strictly):
 - Create at least {duration_weeks * 5} individual topics spread across the weeks
-- Each topic should have at least 1-2 real resource links
 - Consider the student's educational background and adjust complexity
 - Consider their hobbies and daily routine when suggesting study times
-- Include links to real free resources (YouTube, freeCodeCamp, Khan Academy, MIT OCW, Coursera, etc.)
 - Make topics progressive - build on previous knowledge
 - Return ONLY valid JSON, no markdown code blocks or extra text
+- ALL resources must be FREE and accessible WITHOUT any login or account
+- NEVER invent or guess a specific article/course URL - they may not exist
+- ONLY use these approved URL patterns (replace TOPIC with url-encoded topic keywords):
+  * YouTube search: https://www.youtube.com/results?search_query=TOPIC+tutorial
+  * freeCodeCamp search: https://www.freecodecamp.org/news/search/?query=TOPIC
+  * W3Schools (for web/programming): https://www.w3schools.com/LANGUAGE/ (e.g. /python/, /js/, /sql/)
+  * MDN Web Docs: https://developer.mozilla.org/en-US/search?q=TOPIC
+  * MIT OpenCourseWare: https://ocw.mit.edu/search/?q=TOPIC
+  * GeeksforGeeks: https://www.geeksforgeeks.org/TOPIC/ (use main topic page only)
+  * Wikipedia: https://en.wikipedia.org/wiki/TOPIC
+  * GitHub search: https://github.com/search?q=TOPIC+tutorial
+  * The Odin Project: https://www.theodinproject.com/ (homepage only)
+  * CS50 Harvard: https://cs50.harvard.edu/ (homepage only)
+  * Khan Academy: https://www.khanacademy.org/search?page_search_query=TOPIC
+- Do NOT include any paid platforms (Udemy, Coursera, DataCamp, Pluralsight, LinkedIn Learning)
+- Each topic should have 1-2 resource links using the above patterns
 """
 
     try:
-        response = model.generate_content(prompt)
-        text = response.text.strip()
-
-        # Clean up response - remove markdown code blocks if present
-        if text.startswith("```json"):
-            text = text[7:]
-        if text.startswith("```"):
-            text = text[3:]
-        if text.endswith("```"):
-            text = text[:-3]
-        text = text.strip()
-
-        result = json.loads(text)
-        return result
+        text = _chat(prompt, max_tokens=8192, temperature=0.7)
+        return _parse_json(text)
     except json.JSONDecodeError as e:
-        # If JSON parsing fails, try to extract JSON from the response
-        try:
-            start = text.index("{")
-            end = text.rindex("}") + 1
-            result = json.loads(text[start:end])
-            return result
-        except:
-            return {
-                "error": f"Failed to parse AI response: {str(e)}",
-                "raw_response": text[:500]
-            }
+        return {
+            "error": f"Failed to parse AI response: {str(e)}",
+            "raw_response": text[:500] if 'text' in dir() else "",
+        }
     except Exception as e:
         return {"error": f"AI service error: {str(e)}"}
 
@@ -159,27 +184,8 @@ RULES:
 """
 
     try:
-        response = model.generate_content(prompt)
-        text = response.text.strip()
-
-        if text.startswith("```json"):
-            text = text[7:]
-        if text.startswith("```"):
-            text = text[3:]
-        if text.endswith("```"):
-            text = text[:-3]
-        text = text.strip()
-
-        result = json.loads(text)
-        return result
-    except json.JSONDecodeError:
-        try:
-            start = text.index("{")
-            end = text.rindex("}") + 1
-            result = json.loads(text[start:end])
-            return result
-        except:
-            return {"error": "Failed to parse practice questions", "questions": []}
+        text = _chat(prompt, max_tokens=4096, temperature=0.7)
+        return _parse_json(text)
     except Exception as e:
         return {"error": f"AI service error: {str(e)}", "questions": []}
 
@@ -188,7 +194,7 @@ async def evaluate_answers(
     questions: list,
     user_answers: list,
 ) -> dict:
-    """Evaluate user's answers using Gemini AI."""
+    """Evaluate user's answers using Groq AI."""
 
     prompt = f"""You are an expert educator evaluating student answers. 
 
@@ -221,19 +227,8 @@ Return ONLY valid JSON, no markdown code blocks
 """
 
     try:
-        response = model.generate_content(prompt)
-        text = response.text.strip()
-
-        if text.startswith("```json"):
-            text = text[7:]
-        if text.startswith("```"):
-            text = text[3:]
-        if text.endswith("```"):
-            text = text[:-3]
-        text = text.strip()
-
-        result = json.loads(text)
-        return result
+        text = _chat(prompt, max_tokens=4096, temperature=0.3)
+        return _parse_json(text)
     except:
         # Fallback: simple matching
         correct = 0
@@ -280,7 +275,6 @@ If the student seems to be asking about enrolling in a new course, suggest they 
 """
 
     try:
-        response = model.generate_content(prompt)
-        return response.text.strip()
+        return _chat(prompt, max_tokens=2048, temperature=0.7)
     except Exception as e:
         return f"I'm sorry, I encountered an error: {str(e)}. Please try again."
