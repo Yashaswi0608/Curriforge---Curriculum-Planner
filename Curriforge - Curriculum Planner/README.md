@@ -1,6 +1,6 @@
 # 🎓 CurriForge — Generative AI-Powered Curriculum Design System
 
-> **GEN AI FORGE HACKATHON** — An intelligent platform that uses Generative AI (Google Gemini) to create personalized learning curricula, schedules, and practice assessments tailored to each student's profile.
+> **GEN AI FORGE HACKATHON** — An intelligent platform that uses Generative AI (GROQ) to create personalized learning curricula, schedules, and practice assessments tailored to each student's profile.
 
 ---
 
@@ -25,7 +25,7 @@
 |-------|-----------|
 | **Backend** | Python, FastAPI, SQLAlchemy, SQLite |
 | **Frontend** | HTML5, CSS3, Vanilla JavaScript |
-| **AI Engine** | Google Gemini 1.5 Flash |
+| **AI Engine** | GROQ 2.5 |
 | **Auth** | JWT (JSON Web Tokens) + Google OAuth |
 | **Charts** | Chart.js |
 | **API** | RESTful APIs |
@@ -155,3 +155,4 @@ Navigate to: **http://localhost:8000**
 ## 📝 License
 
 This project was built for the GEN AI FORGE Hackathon.
+
